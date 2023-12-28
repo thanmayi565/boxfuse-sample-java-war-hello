@@ -1,79 +1,50 @@
 pipeline {
     agent any
-    
-    // Define parameters for branch selection
-    parameters {
-        choice(name: 'BRANCH_NAME', choices: ['feature/Dev', 'feature/Laptop'], description: 'Select the branch you would like to build.')
-    }
-
-    // Define environment variables
-    environment {
-        DEV_SERVER_IP = '13.233.107.78'
-        QA_SERVER_IP = '13.233.132.109'
-        TOMCAT_DIR = '/home/ubuntu/apache-tomcat-9.0.84'
-        WAR_FILE = 'target/boxfuse-sample-java-war-hello.war'
-        // Initialized as empty, to be set in the script block
-        TARGET_SERVER_IP = ''
-        TOMCAT_CREDENTIAL_ID = ''
-    }
 
     stages {
-        stage('Initialize') {
+        stage("GIT checkout") {
+            steps {
+                // This step is handled automatically by the Multibranch Pipeline configuration.
+                // No need to specify the Git repository here.
+            }
+        }
+
+        stage("Build") {
+            steps {
+                sh "mvn clean package"
+            }
+        }
+
+        stage("Deploy to Dev") {
+            when {
+                expression { env.BRANCH_NAME == 'fe/dev' }
+            }
             steps {
                 script {
-                    // Diagnostic logging
-                    echo "Selected branch: ${params.BRANCH_NAME}"
-                    
-                    // Initialize environment specifics based on the selected branch
-                    if (params.BRANCH_NAME == 'feature/Dev') {
-                        env.TARGET_SERVER_IP = env.DEV_SERVER_IP
-                        env.TOMCAT_CREDENTIAL_ID = 'NewTomcatDev'
-                    } else if (params.BRANCH_NAME == 'feature/Laptop') {
-                        env.TARGET_SERVER_IP = env.QA_SERVER_IP
-                        env.TOMCAT_CREDENTIAL_ID = 'NewTomcatQA'
-                    }
-
-                    // More diagnostic logging
-                    echo "Target server IP: ${env.TARGET_SERVER_IP}"
-                    echo "Tomcat Credential ID: ${env.TOMCAT_CREDENTIAL_ID}"
+                    deployToTomcat('Dev', '3.110.77.94')
                 }
             }
         }
 
-        stage('Checkout') {
-            steps {
-                // Check out the specific Git branch
-                checkout([$class: 'GitSCM', branches: [[name: "*/${params.BRANCH_NAME}"]], userRemoteConfigs: [[url: 'https://github.com/RAJANI9/boxfuse-sample-java-war-hello.git']]])
+        stage("Deploy to QA") {
+            when {
+                expression { env.BRANCH_NAME == 'fe/qa' }
             }
-        }
-
-        stage('Build') {
-            steps {
-                // Build the application using Maven
-                sh 'mvn clean package'
-                sh "mv target/*.war ${env.WAR_FILE}"
-            }
-        }
-
-        stage('Deploy') {
             steps {
                 script {
-                    // Ensure necessary variables are set before deployment
-                    if (env.TARGET_SERVER_IP && env.TOMCAT_CREDENTIAL_ID) {
-                        sshagent([env.TOMCAT_CREDENTIAL_ID]) {
-                            // Define remote commands
-                            def remoteShutdownCommand = "${env.TOMCAT_DIR}/bin/shutdown.sh"
-                            def remoteStartupCommand = "${env.TOMCAT_DIR}/bin/startup.sh"
-                            def remoteAppDir = "${env.TOMCAT_DIR}/webapps/"
+                    deployToTomcat('QA', '65.0.86.219')
+                }
+            }
+        }
 
-                            // Execute deployment steps
-                            sh "scp -o StrictHostKeyChecking=no ${env.WAR_FILE} ubuntu@${env.TARGET_SERVER_IP}:${remoteAppDir}"
-                            sh "ssh ubuntu@${env.TARGET_SERVER_IP} 'sudo ${remoteShutdownCommand}'"
-                            sh "ssh ubuntu@${env.TARGET_SERVER_IP} 'sudo ${remoteStartupCommand}'"
-                        }
-                    } else {
-                        error "Deployment environment specifics not set. Ensure the branch name is correct and environment is configured."
-                    }
+        stage("Deploy to Production") {
+            when {
+                expression { env.BRANCH_NAME == 'main' }
+            }
+            steps {
+                input "Deploy to Production?"
+                script {
+                    deployToTomcat('Production', '13.201.90.50')
                 }
             }
         }
@@ -84,7 +55,30 @@ pipeline {
             echo 'Deployment successful!'
         }
         failure {
-            echo 'Deployment failed.'
+            echo 'Deployment failed. Check logs and server settings.'
         }
+    }
+}
+
+def deployToTomcat(environment, tomcatIP) {
+    def remoteDir = "/home/ubuntu/apache-tomcat-9.0.84/webapps/"
+    def remoteTempDir = "/tmp/"
+    def remoteShutdownScript = "/home/ubuntu/apache-tomcat-9.0.84/bin/shutdown.sh"
+    def remoteStartupScript = "/home/ubuntu/apache-tomcat-9.0.84/bin/startup.sh"
+    def localWarFile = "target/boxfuse-sample-java-war-hello.war"
+
+    // Authenticate using the SSH key named 'NewTomcat'
+    sshagent(['NewTomcat']) {
+        // Copy the WAR file to a temporary directory on the remote server
+        sh "scp -o StrictHostKeyChecking=no ${localWarFile} ubuntu@${tomcatIP}:${remoteTempDir}"
+
+        // Move the WAR file from the temporary directory to the final directory using sudo
+        sh "ssh ubuntu@${tomcatIP} 'sudo mv ${remoteTempDir}boxfuse-sample-java-war-hello.war ${remoteDir}'"
+
+        // Shutdown and then startup Tomcat on the remote server
+        sh "ssh ubuntu@${tomcatIP} 'sudo ${remoteShutdownScript}'"
+        sh "ssh ubuntu@${tomcatIP} 'sudo ${remoteStartupScript}'"
+
+        echo "Deployment to ${environment}-Tomcat completed."
     }
 }
