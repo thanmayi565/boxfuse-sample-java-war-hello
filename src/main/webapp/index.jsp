@@ -15,52 +15,39 @@
             background-color: #333;
             color: #fff;
             padding: 20px;
-            text-align: left;
+            text-align: center;
             font-size: 24px;
         }
-        .product-list {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-        .product {
-            background-color: #fdfd96;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            padding: 15px;
-            width: 30%;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-        .product:hover {
-            transform: translateY(-5px);
-        }
-        .product h3 {
-            color: #333;
-            text-align: center;
-        }
-        .cart {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .cart button {
-            background-color: #ff4500;
-            color: white;
+        .product-list button {
             padding: 10px 20px;
+            margin: 10px;
+            background-color: #fdfd96; /* light yellow */
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
-        .payment {
-            background-color: #90ee90;
-            padding: 20px;
-            text-align: center;
-            display: none;
-        }
-        .payment-info {
-            color: #333;
+        .sub-products {
             margin: 20px 0;
+            padding: 10px;
+            background-color: #ffffe0; /* lightest yellow */
+            display: none; /* Hidden by default */
+        }
+        .sub-product-item {
+            background-color: #b0e0e6; /* powder blue */
+            padding: 5px 10px;
+            margin: 5px;
+            display: inline-block;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .sub-product-item:hover {
+            background-color: #add8e6; /* light blue */
+        }
+        .cart {
+            background-color: #90ee90; /* light green */
+            padding: 10px;
+            text-align: center;
+            display: none; /* Hidden by default */
         }
         .footer {
             background-color: #333;
@@ -77,42 +64,53 @@
     <div class="header">Rajinikanth-Zepto</div>
 
     <div class="product-list">
-        <div class="product" onclick="showSubProducts('fruits')">
-            <h3>Fruits</h3>
-        </div>
-        <div class="product" onclick="showSubProducts('electronics')">
-            <h3>Electronics</h3>
-        </div>
-        <div class="product" onclick="showSubProducts('vegetables')">
-            <h3>Vegetables</h3>
-        </div>
+        <button onclick="showSubProducts('fruits')">Fruits</button>
+        <button onclick="showSubProducts('vegetables')">Vegetables</button>
+        <!-- ... other product categories as needed -->
+    </div>
+
+    <div id="sub-products" class="sub-products">
+        <!-- Sub-products will be listed here -->
     </div>
 
     <div id="cart" class="cart">
-        <button onclick="showPayment()">Add to Cart</button>
-    </div>
-
-    <div id="payment" class="payment">
-        <div class="payment-info">
-            <p>Proceed to payment with Paytm:</p>
-            <p><strong>99XXXXXX number</strong></p>
-            <!-- Replace # with your Paytm link -->
-            <a href="#" style="color: #333; text-decoration: none;">Pay Now</a>
-        </div>
+        <!-- Cart items will be listed here -->
+        <button onclick="showPayment()">Proceed to Payment</button>
     </div>
 
     <div class="footer">Footer content goes here</div>
 
     <script>
+        var products = {
+            'fruits': ['Apple', 'Banana', 'Orange'],
+            'vegetables': ['Tomato', 'Potato', 'Cucumber']
+            // ... add more products as needed ...
+        };
+
         function showSubProducts(category) {
-            // Placeholder function for displaying sub-products
-            alert('Showing sub-products for ' + category);
+            var subProductsDiv = document.getElementById('sub-products');
+            subProductsDiv.innerHTML = ''; // Clear previous items
+            products[category].forEach(function(item) {
+                var div = document.createElement('div');
+                div.className = 'sub-product-item';
+                div.textContent = item;
+                div.onclick = function() { addToCart(item); };
+                subProductsDiv.appendChild(div);
+            });
+            subProductsDiv.style.display = 'block'; // Show sub-products
         }
-        
+
+        function addToCart(item) {
+            var cartDiv = document.getElementById('cart');
+            var itemDiv = document.createElement('div');
+            itemDiv.textContent = item;
+            cartDiv.insertBefore(itemDiv, cartDiv.firstChild); // Add item to the top of the cart
+            cartDiv.style.display = 'block'; // Show cart
+        }
+
         function showPayment() {
-            // Placeholder function for displaying payment options
-            var paymentSection = document.getElementById('payment');
-            paymentSection.style.display = 'block';
+            alert('Implement payment functionality here.');
+            // Here you would typically redirect to a payment page or show payment options.
         }
     </script>
 </body>
