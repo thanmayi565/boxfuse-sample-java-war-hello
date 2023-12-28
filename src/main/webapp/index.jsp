@@ -109,8 +109,8 @@
         }
 
         function showPayment() {
-            alert('Implement payment functionality here.');
-            // Here you would typically redirect to a payment page or show payment options.
+            // Redirect to the payment URL
+            window.location.href = 'http://13.234.48.20/linkpe/';
         }
     </script>
 </body>
