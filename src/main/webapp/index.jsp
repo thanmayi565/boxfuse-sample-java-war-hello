@@ -110,7 +110,7 @@
 
         function showPayment() {
             // Redirect to the payment URL
-            window.location.href = 'http://13.201.39.211/linkpe/';
+            window.location.href = 'http://43.205.235.230/linkpe/';
         }
     </script>
 </body>
